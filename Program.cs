@@ -1,58 +1,91 @@
 ﻿using System;
 using System.IO;
-namespace Date_Info;
-class Program
+
+namespace Date_Info
 {
-    static void Main()
+    class Program
     {
-        // Получаем данные от пользователя
-        Console.Write("Введите дату последнего изменения (дд.мм.гггг): ");
-        string lastModifiedDate = Console.ReadLine();
-        Console.Write("Введите имя файла с идентификаторами (без расширения): ");
-        string fileName = Console.ReadLine();
-
-        // Получаем пути к папкам "Мои документы" и "Рабочий стол"
-        string myDocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-
-        // Ищем файлы в указанных папках
-        string[] documentFiles = Directory.GetFiles(myDocumentsPath, $"{fileName}.txt", SearchOption.AllDirectories);
-        string[] desktopFiles = Directory.GetFiles(desktopPath, $"{fileName}.txt", SearchOption.AllDirectories);
-
-        // Проверяем файлы на соответствие дате последнего изменения
-        string filePath = FindFileByModifiedDate(documentFiles, lastModifiedDate);
-        if (string.IsNullOrEmpty(filePath))
+        static void Main()
         {
-            filePath = FindFileByModifiedDate(desktopFiles, lastModifiedDate);
-        }
+            // Получаем данные от пользователя
+            Console.Write("Введите дату последнего изменения (дд.мм.гггг): ");
+            string lastModifiedDate = Console.ReadLine();
+            Console.Write("Введите имя файла  (без расширения): ");
+            string fileName = Console.ReadLine();
+            Console.Write("Введите  идентификатор: ");
+            string fileNIdetity = Console.ReadLine();
 
-        // Выводим результат
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            Console.WriteLine($"Найден файл: {filePath}");
-        }
-        else
-        {
-            Console.WriteLine("Файл не найден.");
-        }
+            // Получаем путь к папке, где находится файл 
+            string programDirectory = AppDomain.CurrentDomain.BaseDirectory;
 
-        Console.ReadLine();
-    }
+            // Формируем полный путь к файлу
+            string filePath = Path.Combine(programDirectory, $"{fileName}.txt");
 
-    // Метод для поиска файла по указанной дате последнего изменения
-    static string FindFileByModifiedDate(string[] files, string lastModifiedDate)
-    {
-        foreach (string file in files)
-        {
-            DateTime modifiedDate = File.GetLastWriteTime(file);
-            string formattedModifiedDate = modifiedDate.ToString("dd.MM.yyyy");
-
-            if (formattedModifiedDate == lastModifiedDate)
+            // Проверяем существование файла и соответствие дате последнего изменения
+            if (File.Exists(filePath))
             {
-                return file;
+                string[] files = new string[] { filePath };
+
+
+                // Обращаемся  к Методу для поиска файла по указанной дате последнего изменения
+                // и проверки  идентификатора
+                string foundFile = FindFileByModifiedDate(files, lastModifiedDate, fileNIdetity);
+
+                if (!string.IsNullOrEmpty(foundFile))
+                {
+                    Console.WriteLine($"Найден файл: {foundFile}");
+                }
+                else
+                {
+                    Console.WriteLine("Идентификатор или дата последнего изменения не совпадает.");
+                }
             }
+            else
+            {
+                Console.WriteLine("Файл не найден.");
+            }
+
+
+            Console.ReadLine();
         }
 
-        return null;
+        // Метод для поиска файла по указанной дате последнего измененияи проверки  идентификатора
+        static string FindFileByModifiedDate(string[] files, string lastModifiedDate, string fileNIdetity)
+        {
+            foreach (string file in files)
+            {
+                try
+                {
+                   //Определяем  дату последнего изменения файла и приводим ее в нужный строковый формат
+                    DateTime modifiedDate = File.GetLastWriteTime(file);
+                    string formattedModifiedDate = modifiedDate.ToString("dd.MM.yyyy");
+
+                    //Если дата создания файла  совпадает с датой предоставленным пользователем,
+                    //это указывает на то, что дата последнего изменения файла соответствует указанной дате
+                    if (formattedModifiedDate == lastModifiedDate)
+                    {
+                        // Считываем содержимое файла
+                        string[] lines = File.ReadAllLines(file);
+
+                        // Проверяем соответствие считанного текста из файла введенному идентификатору
+                        foreach (string line in lines)
+                        {
+                            if (line == fileNIdetity)
+                            {
+                     
+                                return file; // Файл с идентификатором найден
+                            }
+                        }
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Console.WriteLine("Несанкционированный доступ");
+                }
+            }
+
+            return null; // Файл не найден
+        }
     }
 }
+
